@@ -27,8 +27,8 @@ angular.module('angularPayments')
       month: month,
       year: year
     };
-  }
+  };
 
   return ret;
 
-}])
+}]);

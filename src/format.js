@@ -6,18 +6,18 @@ angular.module('angularPayments')
   var _formats = {}
 
   var _hasTextSelected = function($target) {
-      var ref;
+    var ref;
 
-      if (($target.prop('selectionStart') != null) && $target.prop('selectionStart') !== $target.prop('selectionEnd')) {
-          return true;
-      }
+    if (($target.prop('selectionStart') != null) && $target.prop('selectionStart') !== $target.prop('selectionEnd')) {
+        return true;
+    }
 
-      if (typeof document !== "undefined" && document !== null ? (ref = document.selection) != null ? typeof ref.createRange === "function" ? ref.createRange().text : void 0 : void 0 : void 0) {
-          return true;
-      }
+    if (typeof document !== "undefined" && document !== null ? (ref = document.selection) != null ? typeof ref.createRange === "function" ? ref.createRange().text : void 0 : void 0 : void 0) {
+        return true;
+    }
 
-      return false;
-    };
+    return false;
+  };
 
   // card formatting
 
@@ -28,6 +28,7 @@ angular.module('angularPayments')
     $target.val($target.val().replace(/[^0-9 ]+/g, ''));
 
     value = $target.val();
+
     card = Cards.fromNumber(value);
     length = (value.replace(/\D/g, '')).length;
 
@@ -41,10 +42,7 @@ angular.module('angularPayments')
     if (length >= upperLength) {
       var amountToTrim = upperLength - length;
       if (amountToTrim) {
-        var scope = $target.scope();
-        scope.$apply(function() {
-          $target.val(value.slice(0, amountToTrim));
-        });
+        $target.val(value.slice(0, amountToTrim));
       }
     }
 
@@ -62,58 +60,74 @@ angular.module('angularPayments')
     }
   };
 
+  // prevent more than 16 digits being entered
+  var _restrictCardNumber = function(e) {
+    var $target, card, value;
+
+    $target = angular.element(e.currentTarget);
+    value = $target.val().replace(/[^0-9]+/g, '');
+
+    if (e.which === 8 || e.which === 9 || _hasTextSelected($target)) {
+      return;
+    }
+
+    card = Cards.fromNumber(value);
+
+    if (card) {
+      if(value.length >= card.length[card.length.length - 1]) {
+        e.preventDefault();
+      }
+    }
+    else if(value.length >= 16) {
+      e.preventDefault();
+    }
+  };
+
   var _formatBackCardNumber = function(e) {
-      var $target, value;
+    var $target, value;
 
-      $target = angular.element(e.currentTarget);
-      value = $target.val();
+    $target = angular.element(e.currentTarget);
+    value = $target.val().replace(/[^0-9 ]+/g, '');
 
-      if(e.meta) {
-        return;
-      }
+    if(e.meta || e.which !== 8) {
+      return;
+    }
 
-      if(e.which !== 8) {
-        return;
-      }
+    if(/\d\s$/.test(value) && !e.meta) {
+      e.preventDefault();
+      return $target.val(value.replace(/\d\s$/, ''));
+    } else if (/\s\d?$/.test(value)) {
+      e.preventDefault();
+      return $target.val(value.replace(/\s\d?$/, ''));
+    }
+  };
 
-      if(($target.prop('selectionStart') != null) && $target.prop('selectionStart') !== value.length) {
-        return;
-      }
-
-      if(/\d\s$/.test(value) && !e.meta && e.keyCode >= 46) {
-        e.preventDefault();
-        return $target.val(value.replace(/\d\s$/, ''));
-      } else if (/\s\d?$/.test(value)) {
-        e.preventDefault();
-        return $target.val(value.replace(/\s\d?$/, ''));
-      }
-    };
 
   var _getFormattedCardNumber = function(num) {
-      var card, groups, upperLength, ref;
+    var card, groups, upperLength, ref;
 
-      card = Cards.fromNumber(num);
+    card = Cards.fromNumber(num);
 
-      if (!card) {
-        return num;
+    if (!card) {
+      return num;
+    }
+
+    upperLength = card.length[card.length.length - 1];
+    num = num.replace(/\D/g, '');
+    num = num.slice(0, +upperLength + 1 || 9e9);
+
+    if(card.format.global) {
+      return (ref = num.match(card.format)) != null ? ref.join(' ') : void 0;
+    } else {
+      groups = card.format.exec(num);
+
+      if (groups != null) {
+        groups.shift();
       }
 
-      upperLength = card.length[card.length.length - 1];
-      num = num.replace(/\D/g, '');
-      num = num.slice(0, +upperLength + 1 || 9e9);
-
-      if(card.format.global) {
-        return (ref = num.match(card.format)) != null ? ref.join(' ') : void 0;
-      } else {
-        groups = card.format.exec(num);
-
-        if (groups != null) {
-          groups.shift();
-        }
-
-        return groups != null ? groups.join(' ') : void 0;
-      }
-    };
+      return groups != null ? groups.join(' ') : void 0;
+    }
+  };
 
   var _reFormatCardNumber = function(e) {
     return setTimeout(function() {
@@ -131,8 +145,9 @@ angular.module('angularPayments')
   };
 
   _formats['card'] = function(elem, ctrl){
-    elem.bind('input', _formatCardNumber);
+    elem.bind('keydown', _restrictCardNumber);
     elem.bind('keydown', _formatBackCardNumber);
+    elem.bind('input', _formatCardNumber);
     elem.bind('paste', _reFormatCardNumber);
 
     ctrl.$parsers.push(_parseCardNumber);
@@ -142,12 +157,30 @@ angular.module('angularPayments')
 
   // cvc
 
-  _formatCVC = function(e){
+  var _formatCVC = function(e){
     $target = angular.element(e.currentTarget);
     $target.val($target.val().replace(/[^0-9]+/g,'').substring(0,4));
   };
 
+  var _restrictCVC = function(e) {
+    var $target, value;
+
+    $target = angular.element(e.currentTarget);
+    value = $target.val().replace(/[^0-9]+/g, '');
+
+    // delete or tab keys
+    if (e.which === 8 || e.which === 9) {
+      return;
+    }
+
+    if (value.length >= 4) {
+      e.preventDefault();
+      return;
+    }
+  };
+
   _formats['cvc'] = function(elem){
+    elem.bind('keydown', _restrictCVC);
     elem.bind('input', _formatCVC);
   };
 
@@ -164,18 +197,18 @@ angular.module('angularPayments')
     };
 
     var _formatExpiry = function(e) {
-        var $target, value;
+      var $target, value;
 
-        $target = angular.element(e.currentTarget);
-        $target.val($target.val().replace(/[^0-9]+/g, ''));
+      $target = angular.element(e.currentTarget);
+      $target.val($target.val().replace(/[^0-9]+/g, ''));
 
-        value = $target.val().slice(0,6);
+      value = $target.val().slice(0,6);
 
-        var newValue = _formatExpirationDate(value);
-        if (newValue) {
-          return $target.val(newValue);
-        }
-      };
+      var newValue = _formatExpirationDate(value);
+      if (newValue) {
+        return $target.val(newValue);
+      }
+    };
 
 
     // allow for backspace to remove digits before change is triggered
@@ -201,7 +234,8 @@ angular.module('angularPayments')
       $target = angular.element(e.currentTarget);
       value = $target.val().replace(/[^0-9]+/g, '');
 
-      if (e.which === 8) {
+      // delete or tab keys
+      if (e.which === 8 || e.which === 9) {
         return;
       }
 
@@ -210,8 +244,6 @@ angular.module('angularPayments')
         return;
       }
     };
-
-
 
     var _parseExpiry = function(value) {
       if(value != null) {

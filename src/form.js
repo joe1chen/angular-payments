@@ -87,6 +87,12 @@ angular.module('angularPayments')
           scope.expMonth = null;
           scope.expYear = null;
         }
+        else {
+          var args = arguments;
+          scope.$apply(function () {
+            scope[attr.stripeForm].apply(scope, args);
+          });
+        }
 
       });
     }

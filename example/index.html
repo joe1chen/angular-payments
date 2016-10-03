@@ -8,7 +8,7 @@
 
     <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
 
     <script src="../lib/angular-payments.js"></script>
 
@@ -17,9 +17,10 @@
 
     Stripe.setPublishableKey('fillMePlease')
 
-    angular.module('app', ['angularPayments'])
+    var app = angular.module('app', ['angularPayments']);
 
-    MainController = function($scope){
+    app.controller("MainController", [ '$scope', function($scope){
+      $scope.enableForm = true;
       $scope.handleStripe = function(status, response){
         if(response.error) {
           // there was an error. Fix it.
@@ -27,8 +28,19 @@
           // got stripe token, now charge it or smt
           token = response.id
         }
-      }
-    }
+      };
+      $scope.getEnableForm = function() {
+        return $scope.enableForm;
+      };
+      $scope.toggleForm = function() {
+        if ($scope.enableForm) {
+            $scope.enableForm = false;
+        }
+        else {
+            $scope.enableForm = true;
+        }
+      };
+    }]);
 
     </script>
 
@@ -88,27 +100,29 @@
 
             <form stripe-form="handleStripe" name="myForm">
 
-              <div class="span3">
+              <div class="span3" ng-if="getEnableForm()">
                 <label for="">Card number</label>
-                <input type="tel" class="input-block-level" ng-model="number" payments-validate="card" payments-format="card" payments-type-model="type" ng-class="myForm.number.$card.type"/>
+                <input name="number" type="tel" class="input-block-level" ng-model="number" payments-validate="card" payments-format="card" payments-type-model="type" ng-class="myForm.number.$card.type"/>
               </div>
 
-              <div class="span1">
+              <div class="span1" ng-if="getEnableForm()">
                 <label for="">Expiry</label>
-                <input type="tel" class="input-block-level" ng-model="expiry" payments-validate="expiry" payments-format="expiry" />
+                <input name="expiry" type="tel" class="input-block-level" ng-model="expiry" payments-validate="expiry" payments-format="expiry" />
               </div>
 
-              <div class="span3">
+              <div class="span3" ng-if="getEnableForm()">
                 <label for="">Name on card </label>
                 <input type="text" class="input-block-level">
               </div>
 
-              <div class="span1">
+              <div class="span1" ng-if="getEnableForm()">
                 <label for="">CVC</label>
-                <input type="tel" class="input-block-level" ng-model="cvc" payments-validate="cvc" payments-format="cvc" payments-type-model="type"/>
+                <input name="cvc" type="tel" class="input-block-level" ng-model="cvc" payments-validate="cvc" payments-format="cvc" payments-type-model="type"/>
               </div>
 
+
               <div class="span4">
+                <button type="button" class="btn btn-primary btn-large" ng-click="toggleForm()">Toggle Form</button>
                 <button type="submit" class="btn btn-primary btn-large">Submit</button>
               </div>
             </form>

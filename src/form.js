@@ -16,19 +16,20 @@ angular.module('angularPayments')
                     'cvc', 'name','addressLine1',
                     'addressLine2', 'addressCity',
                     'addressState', 'addressZip',
-                    'addressCountry']
+                    'addressCountry'];
 
     var camelToSnake = function(str){
       return str.replace(/([A-Z])/g, function(m){
         return "_"+m.toLowerCase();
       });
-    }
+    };
 
     var ret = {};
 
+    var i;
     for(i in possibleKeys){
-        if(data.hasOwnProperty(possibleKeys[i])){
-            ret[camelToSnake(possibleKeys[i])] = angular.copy(data[possibleKeys[i]]);
+        if(data.hasOwnProperty(possibleKeys[i]) && data[possibleKeys[i]]){
+            ret[camelToSnake(possibleKeys[i])] = angular.copy(data[possibleKeys[i]].$modelValue);
         }
     }
 
@@ -45,17 +46,20 @@ angular.module('angularPayments')
           throw 'stripeForm requires that you have stripe.js installed. Include https://js.stripe.com/v2/ into your html.';
       }
 
-      var form = angular.element(elem);
+      var form = angular.element(elem),
+          formValues = scope[attr.name];
 
       form.bind('submit', function() {
 
-        expMonthUsed = scope.expMonth ? true : false;
-        expYearUsed = scope.expYear ? true : false;
+        var expMonthUsed = scope.expMonth ? true : false;
+        var expYearUsed = scope.expYear ? true : false;
 
         if(!(expMonthUsed && expYearUsed)){
-          exp = Common.parseExpiry(scope.expiry)
-          scope.expMonth = exp.month
-          scope.expYear = exp.year
+          if (formValues.expiry && formValues.expiry.$modelValue) {
+            var exp = Common.parseExpiry(scope.expiry.$modelValue);
+            scope.expMonth = exp.month;
+            scope.expYear = exp.year;
+          }
         }
 
         var button = form.find('button');
@@ -64,7 +68,7 @@ angular.module('angularPayments')
         if(form.hasClass('ng-valid')) {
 
 
-          $window.Stripe.createToken(_getDataToSend(scope), function() {
+          $window.Stripe.createToken(_getDataToSend(scope[attr.name]), function() {
             var args = arguments;
             scope.$apply(function() {
               scope[attr.stripeForm].apply(scope, args);

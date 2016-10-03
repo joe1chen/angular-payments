@@ -45,43 +45,47 @@ angular.module('angularPayments')
           throw 'stripeForm requires that you have stripe.js installed. Include https://js.stripe.com/v2/ into your html.';
       }
 
-      var form = angular.element(elem);
+      var form = angular.element(elem),
+          formValues = scope[attr.name];
 
       form.bind('submit', function() {
 
-        expMonthUsed = scope.expMonth ? true : false;
-        expYearUsed = scope.expYear ? true : false;
+        // If the form does not have number or cvc, then skip form validation.
+        if (formValues.number && formValues.cvc) {
+          expMonthUsed = scope.expMonth ? true : false;
+          expYearUsed = scope.expYear ? true : false;
 
-        if(!(expMonthUsed && expYearUsed)){
-          exp = Common.parseExpiry(scope.expiry)
-          scope.expMonth = exp.month
-          scope.expYear = exp.year
-        }
+          if (!(expMonthUsed && expYearUsed)) {
+            exp = Common.parseExpiry(scope.expiry)
+            scope.expMonth = exp.month
+            scope.expYear = exp.year
+          }
 
-        var button = form.find('button');
-        button.prop('disabled', true);
+          var button = form.find('button');
+          button.prop('disabled', true);
 
-        if(form.hasClass('ng-valid')) {
+          if (form.hasClass('ng-valid')) {
 
 
-          $window.Stripe.createToken(_getDataToSend(scope), function() {
-            var args = arguments;
-            scope.$apply(function() {
-              scope[attr.stripeForm].apply(scope, args);
+            $window.Stripe.createToken(_getDataToSend(scope), function () {
+              var args = arguments;
+              scope.$apply(function () {
+                scope[attr.stripeForm].apply(scope, args);
+              });
+              button.prop('disabled', false);
+
+            });
+
+          } else {
+            scope.$apply(function () {
+              scope[attr.stripeForm].apply(scope, [400, {error: 'Invalid form submitted.'}]);
             });
             button.prop('disabled', false);
+          }
 
-          });
-
-        } else {
-          scope.$apply(function() {
-            scope[attr.stripeForm].apply(scope, [400, {error: 'Invalid form submitted.'}]);
-          });
-          button.prop('disabled', false);
+          scope.expMonth = null;
+          scope.expYear = null;
         }
-
-        scope.expMonth = null;
-        scope.expYear  = null;
 
       });
     }

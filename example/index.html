@@ -21,6 +21,7 @@
 
     app.controller("MainController", [ '$scope', function($scope){
       $scope.enableForm = true;
+      $scope.payment = {};
       $scope.handleStripe = function(status, response){
         if(response.error) {
           // there was an error. Fix it.
@@ -102,12 +103,12 @@
 
               <div class="span3" ng-if="getEnableForm()">
                 <label for="">Card number</label>
-                <input name="number" type="tel" class="input-block-level" ng-model="number" payments-validate="card" payments-format="card" payments-type-model="type" ng-class="myForm.number.$card.type"/>
+                <input name="number" type="tel" class="input-block-level" ng-model="payment.number" payments-validate="card" payments-format="card" payments-type-model="type" ng-class="myForm.number.$card.type"/>
               </div>
 
               <div class="span1" ng-if="getEnableForm()">
                 <label for="">Expiry</label>
-                <input name="expiry" type="tel" class="input-block-level" ng-model="expiry" payments-validate="expiry" payments-format="expiry" />
+                <input name="expiry" type="tel" class="input-block-level" ng-model="payment.expiry" payments-validate="expiry" payments-format="expiry" />
               </div>
 
               <div class="span3" ng-if="getEnableForm()">
@@ -117,7 +118,7 @@
 
               <div class="span1" ng-if="getEnableForm()">
                 <label for="">CVC</label>
-                <input name="cvc" type="tel" class="input-block-level" ng-model="cvc" payments-validate="cvc" payments-format="cvc" payments-type-model="type"/>
+                <input name="cvc" type="tel" class="input-block-level" ng-model="payment.cvc" payments-validate="cvc" payments-format="cvc" payments-type-model="type"/>
               </div>
 
 

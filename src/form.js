@@ -12,7 +12,7 @@ angular.module('angularPayments')
   // filter valid stripe-values from scope and convert them from camelCase to snake_case
   _getDataToSend = function(data){
 
-    var possibleKeys = ['number', 'expMonth', 'expYear',
+    var possibleKeys = ['number', 'expMonth', 'expYear', 'expiry',
                     'cvc', 'name','addressLine1',
                     'addressLine2', 'addressCity',
                     'addressState', 'addressZip',
@@ -27,9 +27,19 @@ angular.module('angularPayments')
     var ret = {};
 
     for(i in possibleKeys){
-        if(data.hasOwnProperty(possibleKeys[i])){
-            ret[camelToSnake(possibleKeys[i])] = angular.copy(data[possibleKeys[i]]);
+      if (data.hasOwnProperty(possibleKeys[i])) {
+
+        if (data[possibleKeys[i]]) {
+          if (possibleKeys[i] == 'expiry') {
+            var exp = Common.parseExpiry(data[possibleKeys[i]].$modelValue);
+            ret[camelToSnake('expMonth')] = exp.month;
+            ret[camelToSnake('expYear')] = exp.year;
+          }
+          else {
+            ret[camelToSnake(possibleKeys[i])] = angular.copy(data[possibleKeys[i]].$modelValue);
+          }
         }
+      }
     }
 
     ret['number'] = (ret['number'] || '').replace(/ /g,'');
@@ -52,22 +62,13 @@ angular.module('angularPayments')
 
         // If the form does not have number or cvc, then skip form validation.
         if (formValues.number && formValues.cvc) {
-          expMonthUsed = scope.expMonth ? true : false;
-          expYearUsed = scope.expYear ? true : false;
-
-          if (!(expMonthUsed && expYearUsed)) {
-            exp = Common.parseExpiry(scope.expiry)
-            scope.expMonth = exp.month
-            scope.expYear = exp.year
-          }
-
           var button = form.find('button');
           button.prop('disabled', true);
 
           if (form.hasClass('ng-valid')) {
 
 
-            $window.Stripe.createToken(_getDataToSend(scope), function () {
+            $window.Stripe.createToken(_getDataToSend(scope[attr.name]), function () {
               var args = arguments;
               scope.$apply(function () {
                 scope[attr.stripeForm].apply(scope, args);
